@@ -185,10 +185,10 @@ Activate:
   source "$VENV_DIR/bin/activate"
 
 Launch:
-  python app.py --host "$SERVER_NAME" --port "$SERVER_PORT" --share "$SHARE"
+  bash scripts/launch_ui_linux.sh --host "$SERVER_NAME" --port "$SERVER_PORT" --share "$SHARE"
 
 EOF
 
 if [[ "$LAUNCH_UI" == "true" ]]; then
-  python app.py --host "$SERVER_NAME" --port "$SERVER_PORT" --share "$SHARE"
+  bash scripts/launch_ui_linux.sh --host "$SERVER_NAME" --port "$SERVER_PORT" --share "$SHARE"
 fi

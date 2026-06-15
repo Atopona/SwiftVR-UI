@@ -80,14 +80,20 @@ source .venv/bin/activate
 python app.py --host 0.0.0.0 --port 7860 --share false
 ```
 
+Or launch through the helper script, which always uses `.venv/bin/python`:
+
+```bash
+bash scripts/launch_ui_linux.sh --host 0.0.0.0 --port 7860 --share false
+```
+
 To create a public Gradio link, set the share switch explicitly:
 
 ```bash
-python app.py --share true
+bash scripts/launch_ui_linux.sh --share true
 # or
-SWIFTVR_SHARE=true python app.py
+SWIFTVR_SHARE=true bash scripts/launch_ui_linux.sh
 # also accepted
-python app.py Share=True
+bash scripts/launch_ui_linux.sh Share=True
 ```
 
 The installer can launch the UI after installation:
@@ -184,7 +190,7 @@ pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorc
 pip install -r requirements.txt
 pip install "gradio>=4.44.0" "huggingface_hub>=0.24.0"
 pip install --no-deps -e .
-python app.py --share false
+bash scripts/launch_ui_linux.sh --share false
 ```
 
 The UI supports video uploads, image sequence uploads, checkpoint download,

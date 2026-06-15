@@ -10,7 +10,20 @@ import zipfile
 from pathlib import Path
 from typing import Iterable, Optional
 
-import gradio as gr
+try:
+    import gradio as gr
+except ModuleNotFoundError as exc:
+    if exc.name != "gradio":
+        raise
+    raise SystemExit(
+        "Gradio is not installed in this Python environment.\n\n"
+        "Install and run with the project virtual environment:\n"
+        "  bash scripts/install_linux.sh\n"
+        "  .venv/bin/python app.py --share true\n\n"
+        "Or activate it first:\n"
+        "  source .venv/bin/activate\n"
+        "  python app.py --share true"
+    ) from exc
 
 from swiftvr import SwiftVRPipeline
 
