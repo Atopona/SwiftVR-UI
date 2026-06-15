@@ -190,10 +190,10 @@ def _load_pipeline(checkpoint_dir: Path, device: str, dtype: str, attention_back
         if "no kernel image is available for execution on the device" in message:
             raise gr.Error(
                 "当前 PyTorch CUDA 版本不支持这张 GPU。"
-                "RTX PRO 6000 / Blackwell sm_120 请安装 CUDA 12.8 nightly PyTorch：\n\n"
+                "RTX PRO 6000 / Blackwell sm_120 请安装 CUDA 12.8 PyTorch：\n\n"
                 ".venv/bin/python -m pip uninstall -y torch torchvision torchaudio\n"
-                ".venv/bin/python -m pip install --pre torch torchvision "
-                "--index-url https://download.pytorch.org/whl/nightly/cu128"
+                ".venv/bin/python -m pip install torch torchvision "
+                "--index-url https://download.pytorch.org/whl/cu128"
             ) from exc
         raise
     PIPELINE_CACHE["key"] = key
