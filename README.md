@@ -73,6 +73,20 @@ bash scripts/install_linux.sh \
   --download-checkpoints
 ```
 
+For RTX PRO 6000 / RTX 50-series Blackwell GPUs (`sm_120`), use CUDA 12.8
+nightly PyTorch wheels:
+
+```bash
+bash scripts/install_linux.sh --blackwell --download-checkpoints
+```
+
+To repair an existing environment on a Blackwell machine:
+
+```bash
+.venv/bin/python -m pip uninstall -y torch torchvision torchaudio
+.venv/bin/python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+```
+
 Launch the Gradio UI:
 
 ```bash
@@ -193,9 +207,11 @@ pip install --no-deps -e .
 bash scripts/launch_ui_linux.sh --share false
 ```
 
-The UI supports video uploads, image sequence uploads, checkpoint download,
-custom output resolution or source-image scale factors such as 2X/4X, PNG
-sequence export, quality/FPS settings, dtype/device selection, attention backend selection and
+The Gradio UI is localized in Chinese and keeps the main workflow compact:
+input, output settings, model paths, run status and results. It supports video
+uploads, image sequence uploads, checkpoint download, custom output resolution
+or source-image scale factors such as 2X/4X as two explicit output-size modes,
+PNG sequence export, quality/FPS settings, dtype/device selection, attention backend selection and
 `torch.compile`. For browser playback, the UI automatically creates an H.264
 preview MP4 while keeping SwiftVR's original restored MP4 available for
 download.

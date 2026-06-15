@@ -9,6 +9,7 @@ VENV_DIR="${VENV_DIR:-.venv}"
 TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 TORCH_VERSION="${TORCH_VERSION:-2.6.0}"
 TORCHVISION_VERSION="${TORCHVISION_VERSION:-0.21.0}"
+PRE_TORCH=false
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-checkpoints}"
 HF_REPO_ID="${HF_REPO_ID:-H-oliday/SwiftVR}"
 SERVER_NAME="${GRADIO_SERVER_NAME:-0.0.0.0}"
@@ -31,6 +32,8 @@ Options:
   --torch-index-url URL       PyTorch wheel index. Default: CUDA 12.4 wheels
   --torch-version VERSION     Torch version. Default: 2.6.0
   --torchvision-version VER   Torchvision version. Default: 0.21.0
+  --pre-torch                 Allow pre-release PyTorch wheels
+  --blackwell                 Install CUDA 12.8 nightly PyTorch for sm_120 GPUs
   --skip-torch                Do not install torch/torchvision explicitly
   --checkpoint-dir DIR        Checkpoint directory. Default: checkpoints
   --download-checkpoints      Download H-oliday/SwiftVR from Hugging Face
@@ -44,6 +47,7 @@ Options:
 
 Examples:
   bash scripts/install_linux.sh --download-checkpoints
+  bash scripts/install_linux.sh --blackwell --download-checkpoints
   bash scripts/install_linux.sh --launch --share true
   bash scripts/install_linux.sh --launch Share=True
 EOF
@@ -78,6 +82,17 @@ while [[ $# -gt 0 ]]; do
     --torchvision-version)
       TORCHVISION_VERSION="$2"
       shift 2
+      ;;
+    --pre-torch)
+      PRE_TORCH=true
+      shift
+      ;;
+    --blackwell)
+      TORCH_INDEX_URL="https://download.pytorch.org/whl/nightly/cu128"
+      TORCH_VERSION=""
+      TORCHVISION_VERSION=""
+      PRE_TORCH=true
+      shift
       ;;
     --skip-torch)
       INSTALL_TORCH=false
@@ -144,13 +159,31 @@ source "$VENV_DIR/bin/activate"
 python -m pip install --upgrade pip wheel setuptools
 
 if [[ "$INSTALL_TORCH" == "true" ]]; then
-  if ! python -m pip install "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url "$TORCH_INDEX_URL"; then
+  TORCH_PACKAGES=()
+  if [[ -n "$TORCH_VERSION" ]]; then
+    TORCH_PACKAGES+=("torch==${TORCH_VERSION}")
+  else
+    TORCH_PACKAGES+=("torch")
+  fi
+  if [[ -n "$TORCHVISION_VERSION" ]]; then
+    TORCH_PACKAGES+=("torchvision==${TORCHVISION_VERSION}")
+  else
+    TORCH_PACKAGES+=("torchvision")
+  fi
+  PRE_ARGS=()
+  if [[ "$PRE_TORCH" == "true" ]]; then
+    PRE_ARGS+=(--pre)
+  fi
+  if ! python -m pip install --upgrade "${PRE_ARGS[@]}" "${TORCH_PACKAGES[@]}" --index-url "$TORCH_INDEX_URL"; then
     cat >&2 <<EOF
 
-Could not install torch==${TORCH_VERSION} / torchvision==${TORCHVISION_VERSION}.
+Could not install PyTorch from:
+  ${TORCH_INDEX_URL}
+
 Try overriding the versions or wheel index, for example:
   bash scripts/install_linux.sh --torch-version 2.5.1 --torchvision-version 0.20.1
   bash scripts/install_linux.sh --torch-index-url https://download.pytorch.org/whl/cu121
+  bash scripts/install_linux.sh --blackwell
 
 EOF
     exit 1
