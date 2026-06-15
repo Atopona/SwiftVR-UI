@@ -14,6 +14,7 @@ CHECKPOINT_DIR="${CHECKPOINT_DIR:-checkpoints}"
 HF_REPO_ID="${HF_REPO_ID:-H-oliday/SwiftVR}"
 SERVER_NAME="${GRADIO_SERVER_NAME:-0.0.0.0}"
 SERVER_PORT="${GRADIO_SERVER_PORT:-7860}"
+ATTENTION_BACKENDS="${ATTENTION_BACKENDS:-safe}"
 INSTALL_TORCH=true
 DOWNLOAD_CHECKPOINTS=false
 LAUNCH_UI=false
@@ -34,6 +35,7 @@ Options:
   --torchvision-version VER   Torchvision version. Default: 0.21.0
   --pre-torch                 Allow pre-release PyTorch wheels
   --blackwell                 Install CUDA 12.8 PyTorch for sm_120 GPUs
+  --attention-backends MODE   Attention deps: safe, flash, sage, xformers, speed, all. Default: safe
   --skip-torch                Do not install torch/torchvision explicitly
   --checkpoint-dir DIR        Checkpoint directory. Default: checkpoints
   --download-checkpoints      Download H-oliday/SwiftVR from Hugging Face
@@ -48,6 +50,8 @@ Options:
 Examples:
   bash scripts/install_linux.sh --download-checkpoints
   bash scripts/install_linux.sh --blackwell --download-checkpoints
+  bash scripts/install_linux.sh --attention-backends speed
+  bash scripts/install_linux.sh --attention-backends flash
   bash scripts/install_linux.sh --launch --share true
   bash scripts/install_linux.sh --launch Share=True
 EOF
@@ -93,6 +97,10 @@ while [[ $# -gt 0 ]]; do
       TORCHVISION_VERSION=""
       PRE_TORCH=false
       shift
+      ;;
+    --attention-backends)
+      ATTENTION_BACKENDS="$2"
+      shift 2
       ;;
     --skip-torch)
       INSTALL_TORCH=false
@@ -210,7 +218,55 @@ grep -Ev '^(torch|torchvision)(==|>=|<=|~=|>|<|$)' requirements.txt > "$REQ_FILE
 
 python -m pip install -r "$REQ_FILE"
 python -m pip install "gradio>=4.44.0" "huggingface_hub>=0.24.0"
+
+case "${ATTENTION_BACKENDS,,}" in
+  safe|sdpa|none)
+    echo "Using PyTorch SDPA attention backend by default; no extra attention packages are required."
+    ;;
+  flash|flash-attn|flash_attn|flashattention)
+    cat <<'EOF'
+Installing FlashAttention.
+SwiftVR may detect this as flash_attn_2 and/or flash_attn_3 depending on the package and GPU stack.
+EOF
+    python -m pip install packaging ninja
+    python -m pip install flash-attn --no-build-isolation --no-deps || true
+    ;;
+  sage|sageattention)
+    echo "Installing SageAttention."
+    python -m pip install sageattention --no-deps || true
+    ;;
+  xformers)
+    echo "Installing xFormers without dependencies to avoid replacing the selected PyTorch build."
+    python -m pip install xformers --no-deps || true
+    ;;
+  speed|all)
+    cat <<'EOF'
+Installing optional attention acceleration packages.
+These packages can be faster, but SDPA remains the UI default for best correctness and compatibility.
+If an optional package fails to install, SwiftVR can still run with SDPA.
+EOF
+    python -m pip install packaging ninja
+    python -m pip install flash-attn --no-build-isolation --no-deps || true
+    python -m pip install sageattention --no-deps || true
+    python -m pip install xformers --no-deps || true
+    ;;
+  *)
+    echo "Unknown --attention-backends mode: ${ATTENTION_BACKENDS}" >&2
+    echo "Choose: safe, flash, sage, xformers, speed, all" >&2
+    exit 2
+    ;;
+esac
+
 python -m pip install --no-deps -e .
+
+python - <<'PY'
+try:
+    from swiftvr.models.transformer import list_available_attention_backends
+    print("SwiftVR detected attention backends:", ", ".join(list_available_attention_backends()))
+    print("UI default attention backend: sdpa")
+except Exception as exc:
+    print("Could not inspect SwiftVR attention backends:", exc)
+PY
 
 if [[ "$DOWNLOAD_CHECKPOINTS" == "true" ]]; then
   python - <<PY
