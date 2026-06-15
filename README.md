@@ -194,9 +194,11 @@ bash scripts/launch_ui_linux.sh --share false
 ```
 
 The UI supports video uploads, image sequence uploads, checkpoint download,
-custom output resolution or upscale factor, PNG sequence export, quality/FPS
-settings, dtype/device selection, attention backend selection and
-`torch.compile`.
+custom output resolution or source-image scale factors such as 2X/4X, PNG
+sequence export, quality/FPS settings, dtype/device selection, attention backend selection and
+`torch.compile`. For browser playback, the UI automatically creates an H.264
+preview MP4 while keeping SwiftVR's original restored MP4 available for
+download.
 
 ## 📁 Repository Structure
 

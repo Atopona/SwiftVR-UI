@@ -4,6 +4,7 @@ import argparse
 import os
 import re
 import shutil
+import subprocess
 import threading
 import time
 import zipfile
@@ -79,6 +80,17 @@ def _as_int(value, name: str) -> int:
         return int(value)
     except Exception as exc:
         raise gr.Error(f"{name} must be an integer.") from exc
+
+
+def _parse_upscale_factor(value) -> int:
+    text = str(value or "").strip().lower().replace("x", "")
+    try:
+        factor = int(text)
+    except Exception as exc:
+        raise gr.Error("Scale must be an integer multiplier such as 2X or 4X.") from exc
+    if factor <= 0:
+        raise gr.Error("Scale must be greater than 0.")
+    return factor
 
 
 def _as_optional_float(value) -> Optional[float]:
@@ -189,6 +201,51 @@ def _preview_images(source_dir: Path, limit: int = 60) -> list[str]:
     ][:limit]
 
 
+def _browser_video_preview(source_path: Path, work_dir: Path) -> tuple[str, str]:
+    """Create an H.264 preview MP4 because browsers often cannot play x265."""
+    preview_path = work_dir / "restored_preview_h264.mp4"
+    try:
+        import imageio_ffmpeg
+
+        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        ffmpeg = "ffmpeg"
+
+    cmd = [
+        ffmpeg,
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        str(source_path),
+        "-map",
+        "0:v:0",
+        "-an",
+        "-vf",
+        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "18",
+        "-pix_fmt",
+        "yuv420p",
+        "-tag:v",
+        "avc1",
+        "-movflags",
+        "+faststart",
+        str(preview_path),
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except Exception as exc:
+        return str(source_path), f"\nPreview transcode failed, using original MP4: {exc}"
+
+    return str(preview_path), f"\nBrowser preview: {preview_path}"
+
+
 def download_checkpoint(repo_id: str, checkpoint_dir: str):
     try:
         from huggingface_hub import snapshot_download
@@ -261,7 +318,7 @@ def restore_video(
             str(input_path),
             str(output_path),
             resolution=parsed_resolution,
-            upscale=_as_int(upscale, "Upscale"),
+            upscale=_parse_upscale_factor(upscale),
             clip_len=clip_len,
             dit_overlap=_as_int(dit_overlap, "DiT overlap"),
             fps=_as_optional_float(fps),
@@ -283,7 +340,8 @@ def restore_video(
         zip_path = _zip_directory(result_path, work_dir / "restored_png_sequence.zip")
         yield summary, None, str(zip_path), _preview_images(result_path)
     else:
-        yield summary, str(result_path), str(result_path), []
+        preview_path, preview_note = _browser_video_preview(result_path, work_dir)
+        yield summary + preview_note, preview_path, str(result_path), []
 
 
 UI_CSS = """
@@ -308,7 +366,11 @@ def build_demo() -> gr.Blocks:
             with gr.Row():
                 with gr.Column(scale=1):
                     input_mode = gr.Radio(["Video", "Image sequence"], label="Input", value="Video")
-                    video = gr.Video(label="Video file", sources=["upload"])
+                    video = gr.File(
+                        label="Video file",
+                        file_count="single",
+                        file_types=[".mp4", ".mov", ".mkv", ".avi", ".webm"],
+                    )
                     frames = gr.File(
                         label="Image frames",
                         file_count="multiple",
@@ -318,8 +380,12 @@ def build_demo() -> gr.Blocks:
 
                     with gr.Accordion("Output", open=True):
                         png_save = gr.Checkbox(label="PNG sequence", value=False)
-                        resolution = gr.Textbox(label="Resolution", placeholder="1920x1080")
-                        upscale = gr.Slider(1, 8, value=4, step=1, label="Upscale")
+                        resolution = gr.Textbox(label="Output resolution", placeholder="1920x1080")
+                        upscale = gr.Dropdown(
+                            ["1X", "2X", "3X", "4X", "6X", "8X"],
+                            value="4X",
+                            label="Scale",
+                        )
                         fps = gr.Number(label="FPS", value=None, precision=2)
                         quality = gr.Slider(0, 100, value=85, step=1, label="Quality")
 
