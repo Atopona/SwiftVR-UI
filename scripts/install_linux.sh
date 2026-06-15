@@ -33,7 +33,7 @@ Options:
   --torch-version VERSION     Torch version. Default: 2.6.0
   --torchvision-version VER   Torchvision version. Default: 0.21.0
   --pre-torch                 Allow pre-release PyTorch wheels
-  --blackwell                 Install CUDA 12.8 nightly PyTorch for sm_120 GPUs
+  --blackwell                 Install CUDA 12.8 PyTorch for sm_120 GPUs
   --skip-torch                Do not install torch/torchvision explicitly
   --checkpoint-dir DIR        Checkpoint directory. Default: checkpoints
   --download-checkpoints      Download H-oliday/SwiftVR from Hugging Face
@@ -88,10 +88,10 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --blackwell)
-      TORCH_INDEX_URL="https://download.pytorch.org/whl/nightly/cu128"
+      TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128"
       TORCH_VERSION=""
       TORCHVISION_VERSION=""
-      PRE_TORCH=true
+      PRE_TORCH=false
       shift
       ;;
     --skip-torch)
@@ -184,6 +184,7 @@ Try overriding the versions or wheel index, for example:
   bash scripts/install_linux.sh --torch-version 2.5.1 --torchvision-version 0.20.1
   bash scripts/install_linux.sh --torch-index-url https://download.pytorch.org/whl/cu121
   bash scripts/install_linux.sh --blackwell
+  bash scripts/install_linux.sh --pre-torch --torch-index-url https://download.pytorch.org/whl/nightly/cu128
 
 EOF
     exit 1
