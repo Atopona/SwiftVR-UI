@@ -286,12 +286,14 @@ def restore_video(
         yield summary, str(result_path), str(result_path), []
 
 
+UI_CSS = """
+.swiftvr-shell {max-width: 1180px; margin: 0 auto;}
+.swiftvr-status textarea {font-family: ui-monospace, SFMono-Regular, Consolas, monospace;}
+"""
+
+
 def build_demo() -> gr.Blocks:
-    css = """
-    .swiftvr-shell {max-width: 1180px; margin: 0 auto;}
-    .swiftvr-status textarea {font-family: ui-monospace, SFMono-Regular, Consolas, monospace;}
-    """
-    with gr.Blocks(title="SwiftVR", css=css, theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="SwiftVR") as demo:
         with gr.Column(elem_classes=["swiftvr-shell"]):
             gr.Markdown("# SwiftVR")
 
@@ -306,7 +308,7 @@ def build_demo() -> gr.Blocks:
             with gr.Row():
                 with gr.Column(scale=1):
                     input_mode = gr.Radio(["Video", "Image sequence"], label="Input", value="Video")
-                    video = gr.Video(label="Video file", sources=["upload"], type="filepath")
+                    video = gr.Video(label="Video file", sources=["upload"])
                     frames = gr.File(
                         label="Image frames",
                         file_count="multiple",
@@ -415,9 +417,22 @@ def parse_args():
 
 if __name__ == "__main__":
     cli_args = parse_args()
-    build_demo().queue(max_size=8).launch(
-        server_name=cli_args.host,
-        server_port=cli_args.port,
-        share=cli_args.share,
-        inbrowser=cli_args.inbrowser,
+    launch_kwargs = {
+        "server_name": cli_args.host,
+        "server_port": cli_args.port,
+        "share": cli_args.share,
+        "inbrowser": cli_args.inbrowser,
+        "theme": gr.themes.Soft(),
+        "css": UI_CSS,
+    }
+    demo = build_demo().queue(max_size=8)
+    try:
+        demo.launch(**launch_kwargs)
+    except TypeError as exc:
+        if "theme" not in str(exc) and "css" not in str(exc):
+            raise
+        launch_kwargs.pop("theme", None)
+        launch_kwargs.pop("css", None)
+        demo.launch(
+            **launch_kwargs,
     )
