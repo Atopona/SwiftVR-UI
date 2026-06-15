@@ -175,6 +175,19 @@ if [[ "$INSTALL_TORCH" == "true" ]]; then
     PRE_ARGS+=(--pre)
   fi
   if ! python -m pip install --upgrade "${PRE_ARGS[@]}" "${TORCH_PACKAGES[@]}" --index-url "$TORCH_INDEX_URL"; then
+    echo "Combined torch/torchvision install failed; trying torch first..." >&2
+    if [[ -z "$TORCH_VERSION" && -z "$TORCHVISION_VERSION" ]]; then
+      if python -m pip install --upgrade "${PRE_ARGS[@]}" torch --index-url "$TORCH_INDEX_URL"; then
+        python -m pip install --upgrade "${PRE_ARGS[@]}" torchvision --index-url "$TORCH_INDEX_URL" || true
+      fi
+    fi
+  fi
+
+  if ! python - <<'PY'
+import torch
+print("Installed torch:", torch.__version__)
+PY
+  then
     cat >&2 <<EOF
 
 Could not install PyTorch from:
