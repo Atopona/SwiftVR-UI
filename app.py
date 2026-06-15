@@ -433,6 +433,4 @@ if __name__ == "__main__":
             raise
         launch_kwargs.pop("theme", None)
         launch_kwargs.pop("css", None)
-        demo.launch(
-            **launch_kwargs,
-    )
+        demo.launch(**launch_kwargs)
