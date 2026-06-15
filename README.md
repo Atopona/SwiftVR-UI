@@ -74,7 +74,7 @@ bash scripts/install_linux.sh \
 ```
 
 For RTX PRO 6000 / RTX 50-series Blackwell GPUs (`sm_120`), use CUDA 12.8
-nightly PyTorch wheels:
+PyTorch wheels:
 
 ```bash
 bash scripts/install_linux.sh --blackwell --download-checkpoints
@@ -84,7 +84,7 @@ To repair an existing environment on a Blackwell machine:
 
 ```bash
 .venv/bin/python -m pip uninstall -y torch torchvision torchaudio
-.venv/bin/python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+.venv/bin/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 ```
 
 Launch the Gradio UI:
