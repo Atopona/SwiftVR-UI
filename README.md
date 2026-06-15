@@ -215,7 +215,9 @@ or source-image scale factors such as 2X/4X as two explicit output-size modes,
 PNG sequence export, quality/FPS settings, dtype/device selection, attention backend selection and
 `torch.compile`. For browser playback, the UI automatically creates an H.264
 preview MP4 while keeping SwiftVR's original restored MP4 available for
-download.
+download. The default UI output keeps the source video size (`1X`) and source
+FPS (`0` means auto). Image sequence inputs are always exported as restored PNG
+sequences instead of MP4.
 
 ## 📁 Repository Structure
 

@@ -102,8 +102,10 @@ def _as_optional_float(value) -> Optional[float]:
     if value in (None, ""):
         return None
     fps = float(value)
-    if fps <= 0:
-        raise gr.Error("FPS 必须大于 0。")
+    if fps == 0:
+        return None
+    if fps < 0:
+        raise gr.Error("FPS 必须大于等于 0，填 0 表示跟随原视频。")
     return fps
 
 
@@ -322,7 +324,8 @@ def restore_video(
         parsed_resolution = _parse_resolution(resolution)
     else:
         parsed_resolution = None
-    output_path = work_dir / ("png_frames" if png_save else "restored.mp4")
+    effective_png_save = bool(png_save) or input_mode == IMAGE_SEQUENCE_MODE
+    output_path = work_dir / ("png_frames" if effective_png_save else "restored.mp4")
 
     yield "正在加载模型...", None, None, []
 
@@ -346,7 +349,7 @@ def restore_video(
             dit_overlap=_as_int(dit_overlap, "DiT 重叠"),
             fps=_as_optional_float(fps),
             quality=_as_int(quality, "输出质量"),
-            png_save=bool(png_save),
+            png_save=effective_png_save,
             save_format=str(save_format or ""),
             ffmpeg_preset=str(ffmpeg_preset or ""),
             queue_size=_as_int(queue_size, "队列深度"),
@@ -359,7 +362,7 @@ def restore_video(
         f"平均 {stats['fps']:.2f} FPS。\n输出位置：{result_path}"
     )
 
-    if png_save:
+    if effective_png_save:
         zip_path = _zip_directory(result_path, work_dir / "restored_png_sequence.zip")
         yield summary, None, str(zip_path), _preview_images(result_path)
     else:
@@ -415,7 +418,7 @@ def build_demo() -> gr.Blocks:
                     with gr.Row():
                         upscale = gr.Dropdown(
                             SCALE_CHOICES,
-                            value="4X",
+                            value="1X",
                             label="放大倍率",
                         )
                         resolution = gr.Textbox(
@@ -425,8 +428,8 @@ def build_demo() -> gr.Blocks:
                         )
                     with gr.Row():
                         quality = gr.Slider(0, 100, value=85, step=1, label="输出质量")
-                        fps = gr.Number(label="输出 FPS", value=None, precision=2)
-                    png_save = gr.Checkbox(label="导出 PNG 序列", value=False)
+                        fps = gr.Number(label="输出 FPS（0=跟随原视频）", value=0, precision=2)
+                    png_save = gr.Checkbox(label="导出 PNG 序列（图片序列输入时自动启用）", value=False)
 
                     with gr.Accordion("模型与保存路径", open=True):
                         checkpoint_dir = gr.Textbox(label="模型目录", value=DEFAULT_CHECKPOINT_DIR)
@@ -471,9 +474,10 @@ def build_demo() -> gr.Blocks:
             lambda mode: (
                 gr.update(visible=mode == VIDEO_MODE),
                 gr.update(visible=mode == IMAGE_SEQUENCE_MODE),
+                gr.update(value=(mode == IMAGE_SEQUENCE_MODE), interactive=(mode == VIDEO_MODE)),
             ),
             inputs=input_mode,
-            outputs=[video, frames],
+            outputs=[video, frames, png_save],
         )
 
         size_mode.change(
