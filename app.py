@@ -192,8 +192,8 @@ def _load_pipeline(checkpoint_dir: Path, device: str, dtype: str, attention_back
                 "当前 PyTorch CUDA 版本不支持这张 GPU。"
                 "RTX PRO 6000 / Blackwell sm_120 请安装 CUDA 12.8 PyTorch：\n\n"
                 ".venv/bin/python -m pip uninstall -y torch torchvision torchaudio\n"
-                ".venv/bin/python -m pip install torch torchvision "
-                "--index-url https://download.pytorch.org/whl/cu128"
+                ".venv/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cu128\n"
+                ".venv/bin/python -m pip install torchvision --index-url https://download.pytorch.org/whl/cu128 || true"
             ) from exc
         raise
     PIPELINE_CACHE["key"] = key

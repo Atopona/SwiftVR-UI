@@ -84,7 +84,8 @@ To repair an existing environment on a Blackwell machine:
 
 ```bash
 .venv/bin/python -m pip uninstall -y torch torchvision torchaudio
-.venv/bin/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+.venv/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cu128
+.venv/bin/python -m pip install torchvision --index-url https://download.pytorch.org/whl/cu128 || true
 ```
 
 Launch the Gradio UI:
