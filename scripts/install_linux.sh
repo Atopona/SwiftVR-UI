@@ -7,6 +7,8 @@ cd "$ROOT_DIR"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 VENV_DIR="${VENV_DIR:-.venv}"
 TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
+TORCH_VERSION="${TORCH_VERSION:-2.6.0}"
+TORCHVISION_VERSION="${TORCHVISION_VERSION:-0.21.0}"
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-checkpoints}"
 HF_REPO_ID="${HF_REPO_ID:-H-oliday/SwiftVR}"
 SERVER_NAME="${GRADIO_SERVER_NAME:-0.0.0.0}"
@@ -27,6 +29,8 @@ Options:
   --venv DIR                  Virtual environment directory. Default: .venv
   --python BIN                Python executable. Default: python3
   --torch-index-url URL       PyTorch wheel index. Default: CUDA 12.4 wheels
+  --torch-version VERSION     Torch version. Default: 2.6.0
+  --torchvision-version VER   Torchvision version. Default: 0.21.0
   --skip-torch                Do not install torch/torchvision explicitly
   --checkpoint-dir DIR        Checkpoint directory. Default: checkpoints
   --download-checkpoints      Download H-oliday/SwiftVR from Hugging Face
@@ -65,6 +69,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --torch-index-url)
       TORCH_INDEX_URL="$2"
+      shift 2
+      ;;
+    --torch-version)
+      TORCH_VERSION="$2"
+      shift 2
+      ;;
+    --torchvision-version)
+      TORCHVISION_VERSION="$2"
       shift 2
       ;;
     --skip-torch)
@@ -132,10 +144,26 @@ source "$VENV_DIR/bin/activate"
 python -m pip install --upgrade pip wheel setuptools
 
 if [[ "$INSTALL_TORCH" == "true" ]]; then
-  python -m pip install torch==2.10.0 torchvision==0.25.0 --index-url "$TORCH_INDEX_URL"
+  if ! python -m pip install "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url "$TORCH_INDEX_URL"; then
+    cat >&2 <<EOF
+
+Could not install torch==${TORCH_VERSION} / torchvision==${TORCHVISION_VERSION}.
+Try overriding the versions or wheel index, for example:
+  bash scripts/install_linux.sh --torch-version 2.5.1 --torchvision-version 0.20.1
+  bash scripts/install_linux.sh --torch-index-url https://download.pytorch.org/whl/cu121
+
+EOF
+    exit 1
+  fi
 fi
 
-python -m pip install -e ".[ui]"
+REQ_FILE="$(mktemp)"
+trap 'rm -f "$REQ_FILE"' EXIT
+grep -Ev '^(torch|torchvision)(==|>=|<=|~=|>|<|$)' requirements.txt > "$REQ_FILE"
+
+python -m pip install -r "$REQ_FILE"
+python -m pip install "gradio>=4.44.0" "huggingface_hub>=0.24.0"
+python -m pip install --no-deps -e .
 
 if [[ "$DOWNLOAD_CHECKPOINTS" == "true" ]]; then
   python - <<PY

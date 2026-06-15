@@ -50,7 +50,7 @@ conda create -n swiftvr python=3.10 -y
 conda activate swiftvr
 
 # Install PyTorch matching your CUDA toolkit first, e.g. CUDA 12.4:
-pip install torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cu124
+pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
 
 # Install SwiftVR (editable) and its dependencies:
 pip install -e .
@@ -60,6 +60,17 @@ pip install -e .
 
 ```bash
 bash scripts/install_linux.sh --download-checkpoints
+```
+
+The installer defaults to `torch==2.6.0` / `torchvision==0.21.0`, which are
+available from the CUDA 12.4 PyTorch wheel index. Override them when your
+platform has newer wheels:
+
+```bash
+bash scripts/install_linux.sh \
+  --torch-version 2.5.1 \
+  --torchvision-version 0.20.1 \
+  --download-checkpoints
 ```
 
 Launch the Gradio UI:
@@ -169,7 +180,10 @@ Use `--png` to write a PNG sequence.
 ### Gradio UI
 
 ```bash
-pip install -e ".[ui]"
+pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+pip install -r requirements.txt
+pip install "gradio>=4.44.0" "huggingface_hub>=0.24.0"
+pip install --no-deps -e .
 python app.py --share false
 ```
 
